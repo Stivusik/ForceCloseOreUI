@@ -130,10 +130,7 @@ public:
 #elif __aarch64__
 #define OREUI_PATTERN                                                                     \
      std::initializer_list<const char *>({                                                \
-      "? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 FD 03 00 91 ? ? ? D1 ? ? ? D5 FA 03 00 AA F5 03 07 AA", \
-      "? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 FD 03 00 91 ? ? ? D1 ? ? ? D5 FB 03 00 AA F5 03 07 AA", \
-      "? ? ? D1 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? 91 ? ? ? F9 ? ? ? D5 FB 03 00 AA ? ? ? F9 F5 03 07 AA", \
-      "? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 FD 03 00 91 ? ? ? D1 ? ? ? D5 FA 03 00 AA F6 03 07 AA" \
+      "? ? ? D1 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? A9 ? ? ? 91 ? ? ? D5 FB 03 03 2A F8 03 02 2A", \
   })                                                                                                                    \
 
 #elif _WIN32
@@ -146,10 +143,7 @@ public:
 
 #define OREUI_PATTERN                                                                                                    \
      std::initializer_list<const char *>({                                                                               \
-    "40 53 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 68 48 8B 05 ? ? ? ? 48 33 C4 48 89 44 24 ? 49 8B E9 4C 89 44 24 ? 4C 8B EA 48 8B F9 48 89 4C 24", \
-    "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC 18 02 00 00 48 8B 05 ? ? ? ? 48 33 C4 48 89 85 ? ? ? ? 49 8B F1 4C 89 44 24", \
-    "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC B8 01 00 00 48 8B 05 ? ? ? ? 48 33 C4 48 89 85 ? ? ? ? 49 8B F1 4C 89 44 24", \
-    "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC 98 01 00 00 48 8B 05 ? ? ? ? 48 33 C4 48 89 85 ? ? ? ? 4D 8B F1 4C 89 44 24" \
+    "55 41 57 41 56 41 55 41 54 56 57 53 48 81 EC D8 01 00 00 48 8D AC 24 ? ? ? ? 48 C7 85 ? ? ? ? ? ? ? ? 45 89 CE", \
   })                                                                                                 \
 
  #endif
@@ -233,8 +227,9 @@ void saveJson(const std::string &path, const nlohmann::json &j) {
 }
 
 SKY_AUTO_STATIC_HOOK(Hook2, memory::HookPriority::Normal, OREUI_PATTERN, void,
-                     void *a1, void *a2, void *a3, void *a4, void *a5, void *a6,
-                     void *a7, void *a8, void *a9, OreUi &a10, void *a11) {
+                     OreUi &a1, void *a2, void *a3, void *a4, void *a5,
+                     void *a6) {
+  origin(a1, a2, a3, a4, a5, a6);
   dirPath = getConfigDir();
   filePath = dirPath + "config.json";
 
@@ -244,14 +239,12 @@ SKY_AUTO_STATIC_HOOK(Hook2, memory::HookPriority::Normal, OREUI_PATTERN, void,
     inFile.close();
   }
 
-  for (auto &data : a10.mConfigs) {
-
+  for (auto &data : a1.mConfigs) {
     bool value = false;
     if (outputJson.contains(data.first) &&
         outputJson[data.first].is_boolean()) {
       value = outputJson[data.first];
     } else {
-
       outputJson[data.first] = false;
       updated = true;
     }
@@ -262,8 +255,6 @@ SKY_AUTO_STATIC_HOOK(Hook2, memory::HookPriority::Normal, OREUI_PATTERN, void,
   if (updated || !std::filesystem::exists(filePath)) {
     saveJson(filePath, outputJson);
   }
-
-  origin(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11);
 }
 
 } // namespace
