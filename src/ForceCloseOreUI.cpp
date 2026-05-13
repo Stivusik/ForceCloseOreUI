@@ -377,6 +377,22 @@ std::vector<fs::path> getConfigDirCandidates() {
   return paths;
 }
 
+fs::path selectWritableConfigDir(const std::vector<fs::path> &candidates) {
+  for (const auto &dir : candidates) {
+    if (isDirectoryWritable(dir))
+      return dir;
+  }
+
+  if (!candidates.empty())
+    return candidates.front();
+  return fs::path("mods") / kModDirName;
+}
+
+struct ConfigFiles {
+  fs::path source;
+  fs::path target;
+};
+
 ConfigFiles resolveConfigFiles() {
   std::vector<fs::path> candidates = getConfigDirCandidates();
 
