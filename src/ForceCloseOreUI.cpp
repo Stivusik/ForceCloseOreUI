@@ -212,7 +212,7 @@ std::string GetMinecraftDataPath(JNIEnv *env) {
   if (storage_path.empty())
     return "";
 
-  return (fs::path(storage_path) / "Android" / "data" /
+  return (fs::path(storage_path) / "android" / "data" /
           "com.mojang.minecraftpe")
       .string();
 }
@@ -368,13 +368,11 @@ std::vector<fs::path> getConfigDirCandidates() {
 #if __arm__ || __aarch64__
   JNIEnv *current_env = getCurrentJNIEnv();
   if (current_env) {
-    std::string mc_data_path = GetMinecraftDataPath(current_env);
-    if (!mc_data_path.empty())
-      appendUniquePath(paths, fs::path(mc_data_path));
+    std::string base_path = GetMinecraftDataPath(current_env);
+    if (!base_path.empty())
+      appendUniquePath(paths, fs::path(base_path) / kModDirName);
   }
 #endif
-  appendUniquePath(paths, fs::path("/sdcard/games") / kModDirName);
-  appendUniquePath(paths, fs::path("/storage/emulated/0/games") / kModDirName);
 #endif
   return paths;
 }
@@ -397,18 +395,14 @@ struct ConfigFiles {
 
 ConfigFiles resolveConfigFiles() {
   std::vector<fs::path> candidates = getConfigDirCandidates();
+
   fs::path target_dir =
-      candidates.empty() ? fs::path("mods") / kModDirName : candidates.front();
+      candidates.empty() ? fs::path("/storage/emulated/0/android/data/com.mojang.minecraftpe") / kModDirName
+                         : candidates.front();
   fs::path target = target_dir / kConfigFileName;
 
   if (pathExists(target))
     return {target, target};
-
-  for (const auto &dir : candidates) {
-    fs::path candidate = dir / kConfigFileName;
-    if (pathExists(candidate))
-      return {candidate, target};
-  }
 
   return {{}, target};
 }
