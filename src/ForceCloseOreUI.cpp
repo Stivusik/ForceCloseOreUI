@@ -16,6 +16,7 @@
 #include <vector>
 
 namespace fs = std::filesystem;
+
 #if _WIN32
 
 #include <shlobj.h>
@@ -28,7 +29,6 @@ namespace fs = std::filesystem;
 #if __arm__
 #include <unistd.h>
 extern "C" int __wrap_getpagesize() { return sysconf(_SC_PAGESIZE); }
-
 #endif
 
 #if __arm__ || __aarch64__
@@ -207,25 +207,13 @@ std::string getInternalStoragePath(JNIEnv *env) {
   return result;
 }
 
-std::string GetModsFilesPath(JNIEnv *env) {
-  jobject app_context = getGlobalContext(env);
-  if (!app_context) {
-    return "";
-  }
-  auto package_name = getPackageName(env, app_context);
-  env->DeleteLocalRef(app_context);
-  if (package_name.empty())
-    return "";
-
-  std::transform(
-      package_name.begin(), package_name.end(), package_name.begin(),
-      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
+std::string GetMinecraftDataPath(JNIEnv *env) {
   std::string storage_path = getInternalStoragePath(env);
   if (storage_path.empty())
     return "";
 
-  return (fs::path(storage_path) / "Android" / "data" / package_name / "mods")
+  return (fs::path(storage_path) / "Android" / "data" /
+          "com.mojang.minecraftpe")
       .string();
 }
 
@@ -275,14 +263,12 @@ public:
 #include <vector>
 #include <windows.h>
 
-
 #define OREUI_PATTERN                                                                                                    \
      std::initializer_list<const char *>({                                                                               \
     "55 41 57 41 56 41 55 41 54 56 57 53 48 81 EC D8 01 00 00 48 8D AC 24 ? ? ? ? 48 C7 85 ? ? ? ? ? ? ? ? 45 89 CE", \
   })                                                                                                 \
 
- #endif
-
+#endif
 // clang-format on
 
 namespace {
@@ -382,9 +368,9 @@ std::vector<fs::path> getConfigDirCandidates() {
 #if __arm__ || __aarch64__
   JNIEnv *current_env = getCurrentJNIEnv();
   if (current_env) {
-    std::string mods_path = GetModsFilesPath(current_env);
-    if (!mods_path.empty())
-      appendUniquePath(paths, fs::path(mods_path) / kModDirName);
+    std::string mc_data_path = GetMinecraftDataPath(current_env);
+    if (!mc_data_path.empty())
+      appendUniquePath(paths, fs::path(mc_data_path));
   }
 #endif
   appendUniquePath(paths, fs::path("/sdcard/games") / kModDirName);
@@ -411,7 +397,8 @@ struct ConfigFiles {
 
 ConfigFiles resolveConfigFiles() {
   std::vector<fs::path> candidates = getConfigDirCandidates();
-  fs::path target_dir = selectWritableConfigDir(candidates);
+  fs::path target_dir =
+      candidates.empty() ? fs::path("mods") / kModDirName : candidates.front();
   fs::path target = target_dir / kConfigFileName;
 
   if (pathExists(target))
